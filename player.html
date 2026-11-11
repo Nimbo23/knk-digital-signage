@@ -3,6 +3,8 @@
 <title>KNK Portrait Player</title><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:system-ui}
 #screen{position:relative;width:100vw;height:100dvh;background:#000;overflow:hidden}
+@media (orientation:landscape){#screen{width:min(100vw,56.25dvh);height:100dvh;margin-inline:auto}.media{object-fit:contain}}
+@media (orientation:portrait){.media{object-fit:cover}}
 .media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
 #status{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#fff;background:linear-gradient(145deg,#f8a71d,#d52b1e)}
 #start{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);padding:14px 22px;border:0;border-radius:12px;background:#ffb421;color:#43140a;font-size:18px;font-weight:800;cursor:pointer;z-index:3}
