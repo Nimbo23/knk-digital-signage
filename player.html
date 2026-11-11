@@ -12,11 +12,11 @@
 const KEY='knk_signage_demo_v1';
 const $=id=>document.getElementById(id);
 let index=0,timer=null,started=false,token=0;
-function read(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return {}}}
+let cloud={slides:[],settings:{seconds:6,volume:80}};async function refresh(){try{const r=await fetch('/api/playlist',{cache:'no-store'});if(!r.ok)throw Error('Playlist '+r.status);cloud=await r.json()}catch(e){$('status').textContent='Cannot load cloud playlist: '+e.message;$('status').hidden=false}}
 function mediaUrl(s){return s.url||s.image||s.video||''}
 function isVideo(s){return s.type==='video'||s.mediaType?.startsWith('video/')||/\.(mp4|webm|mov)(\?|$)/i.test(mediaUrl(s))}
 function stop(){clearTimeout(timer);$('video').pause();$('video').removeAttribute('src');$('video').load();$('video').hidden=true;$('image').hidden=true;$('start').hidden=true}
-function next(){stop();const t=++token;const data=read();const slides=(data.slides||[]).filter(s=>s.enabled!==false&&mediaUrl(s));if(!slides.length){$('status').hidden=false;$('status').textContent='Add media in KNK Signage Manager to begin.';timer=setTimeout(next,5000);return}
+async function next(){stop();await refresh();const t=++token;const data={...cloud.settings,slides:cloud.slides};const slides=(data.slides||[]).filter(s=>s.enabled!==false&&mediaUrl(s));if(!slides.length){$('status').hidden=false;$('status').textContent='Add media in KNK Signage Manager to begin.';timer=setTimeout(next,5000);return}
 const s=slides[index++%slides.length],url=mediaUrl(s);$('status').hidden=true;
 if(isVideo(s)){const v=$('video');v.hidden=false;v.src=url;v.muted=false;v.volume=Math.max(0,Math.min(1,Number(data.volume??80)/100));v.onended=()=>{if(t===token)next()};v.onerror=()=>{if(t===token)next()};v.play().then(()=>{$('start').hidden=true}).catch(()=>{if(t!==token)return;$('start').hidden=false;$('start').onclick=()=>{started=true;v.play().then(()=>$('start').hidden=true).catch(()=>{$('start').textContent='Tap to enable sound'})}})}
 else{$('image').src=url;$('image').hidden=false;timer=setTimeout(()=>{if(t===token)next()},Math.max(3,Math.min(120,Number(data.seconds)||6))*1000)}
