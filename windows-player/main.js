@@ -6,6 +6,7 @@ const fsp=require('node:fs/promises');
 const path=require('node:path');
 const {Readable}=require('node:stream');
 const {pipeline}=require('node:stream/promises');
+app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 const BASE='https://knksignage.vamtratech.com';
 let mainWindow,loginWindow,server,port,updating=false,cache,manifest={slides:[],settings:{seconds:6,volume:80}};
 const types={'.mp4':'video/mp4','.webm':'video/webm','.mov':'video/quicktime','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.gif':'image/gif'};
@@ -51,7 +52,8 @@ async function sync(){if(updating)return;updating=true;try{
   const id=String(slide.id);if(!/^[a-zA-Z0-9_-]+$/.test(id))continue;
   const file=path.join(cache,id+mimeExt(slide.mediaType||''));
   try{if((await fsp.stat(file)).size>0)continue}catch{}
-  const response=await ses.fetch(new URL(slide.url,BASE).href);
+  const target=new URL(slide.url,BASE);if(target.origin!==new URL(BASE).origin)throw Error('Unexpected media host');
+  const response=await ses.fetch(target.href);
   if(!response.ok||!(response.headers.get('content-type')||'').startsWith(slide.mediaType?.split('/')[0]+'/'))throw Error('Media download failed: '+id);
   const tmp=file+'.download';
   try{await pipeline(Readable.fromWeb(response.body),fs.createWriteStream(tmp));await fsp.rename(tmp,file)}
