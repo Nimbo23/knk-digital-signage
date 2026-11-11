@@ -1,30 +1,38 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KNK Portrait Player</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KNK Portrait Player</title>
+<style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:system-ui}
 #screen{position:relative;width:100vw;height:100dvh;background:#000;overflow:hidden}
- .media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
-@media (orientation:landscape){#screen{width:min(100vw,56.25dvh);height:100dvh;margin-inline:auto}.media{object-fit:contain}}
-#status{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#fff;background:linear-gradient(145deg,#f8a71d,#d52b1e)}
-#start{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);padding:14px 22px;border:0;border-radius:12px;background:#ffb421;color:#43140a;font-size:18px;font-weight:800;cursor:pointer;z-index:3}
-#status[hidden],.media[hidden],#start[hidden]{display:none}
-</style></head><body><main id="screen"><div id="status">Add media in KNK Signage Manager to begin.</div><img id="image" class="media" hidden alt="KNK product artwork"><video id="video" class="media" hidden playsinline preload="auto"></video><button id="start" hidden>Start signage with sound</button></main>
+.media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s ease;background:#000}
+.media.active{opacity:1}
+@media(orientation:landscape){#screen{width:min(100vw,56.25dvh);height:100dvh;margin-inline:auto}.media{object-fit:contain}}
+#status{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:white;background:linear-gradient(145deg,#f8a71d,#d52b1e);z-index:5}
+#start{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);padding:14px 22px;border:0;border-radius:12px;background:#ffb421;color:#43140a;font-size:18px;font-weight:800;cursor:pointer;z-index:6}
+#status[hidden],#start[hidden]{display:none}
+</style></head><body><main id="screen">
+<div id="status">Loading KNK signage…</div>
+<img class="media" id="img0" alt="KNK artwork"><img class="media" id="img1" alt="KNK artwork">
+<video class="media" id="vid0" playsinline preload="auto"></video><video class="media" id="vid1" playsinline preload="auto"></video>
+<button id="start" hidden>Start signage with sound</button></main>
 <script>
-const KEY='knk_signage_demo_v1';
 const $=id=>document.getElementById(id);
-let timer=null,token=0,bag=[],signature='',lastId=null;
-let cloud={slides:[],settings:{seconds:6,volume:80}};async function refresh(){try{const r=await fetch('/api/playlist',{cache:'no-store'});if(!r.ok)throw Error('Playlist '+r.status);cloud=await r.json()}catch(e){$('status').textContent='Cannot load cloud playlist: '+e.message;$('status').hidden=false}}
-function mediaUrl(s){return s.url||s.image||s.video||''}
-function isVideo(s){return s.type==='video'||s.mediaType?.startsWith('video/')||/\.(mp4|webm|mov)(\?|$)/i.test(mediaUrl(s))}
-function shuffle(items){for(let i=items.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[items[i],items[j]]=[items[j],items[i]]}return items}
-function choose(slides){const ids=slides.map(s=>s.id).sort().join('|');if(ids!==signature){signature=ids;bag=[]}if(!bag.length){bag=shuffle(slides.map(s=>s.id));if(bag.length>1&&bag[0]===lastId){const j=1+Math.floor(Math.random()*(bag.length-1));[bag[0],bag[j]]=[bag[j],bag[0]]}}const id=bag.shift();lastId=id;return slides.find(s=>s.id===id)}
-function stop(){clearTimeout(timer);$('video').pause();$('video').removeAttribute('src');$('video').load();$('video').hidden=true;$('image').hidden=true;$('start').hidden=true}
-async function next(){stop();await refresh();const t=++token;const data={...cloud.settings,slides:cloud.slides};const slides=(data.slides||[]).filter(s=>s.enabled!==false&&mediaUrl(s));if(!slides.length){$('status').hidden=false;$('status').textContent='Add media in KNK Signage Manager to begin.';timer=setTimeout(next,5000);return}
-const s=choose(slides),url=mediaUrl(s);$('status').hidden=true;
-if(isVideo(s)){const v=$('video');v.hidden=false;v.src=url;v.muted=false;v.volume=Math.max(0,Math.min(1,Number(data.volume??80)/100));v.onended=()=>{if(t===token)next()};v.onerror=()=>{if(t===token)next()};v.play().then(()=>{$('start').hidden=true}).catch(()=>{if(t!==token)return;$('start').hidden=false;$('start').onclick=()=>{started=true;v.play().then(()=>$('start').hidden=true).catch(()=>{$('start').textContent='Tap to enable sound'})}})}
-else{$('image').src=url;$('image').hidden=false;timer=setTimeout(()=>{if(t===token)next()},Math.max(3,Math.min(120,Number(data.seconds)||6))*1000)}
-}
-window.addEventListener('storage',e=>{if(e.key===KEY){bag=[];next()}});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('video').hidden===false&&$('video').paused){$('video').play().catch(()=>{$('start').hidden=false})}});
+const slots={image:[$('img0'),$('img1')],video:[$('vid0'),$('vid1')]};
+let current=null,bag=[],signature='',lastId=null,token=0,timer=null;
+let cloud={slides:[],settings:{seconds:6,volume:80}};
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function choose(items){const sig=items.map(x=>x.id).sort().join('|');if(sig!==signature){signature=sig;bag=[]}if(!bag.length){bag=shuffle(items.map(x=>x.id));if(bag.length>1&&bag[0]===lastId){let j=1+Math.floor(Math.random()*(bag.length-1));[bag[0],bag[j]]=[bag[j],bag[0]]}}const id=bag.shift();lastId=id;return items.find(x=>x.id===id)}
+function isVideo(s){return s.mediaType?.startsWith('video/')||s.type==='video'||/\.(mp4|webm)(\?|$)/i.test(s.url||'')}
+function standby(type){return slots[type].find(e=>e!==current)||slots[type][0]}
+async function refresh(){const r=await fetch('/api/playlist',{cache:'no-store',credentials:'same-origin'});if(!r.ok)throw Error('Playlist '+r.status);cloud=await r.json()}
+function show(el){const previous=current;el.style.zIndex='2';el.classList.add('active');current=el;$('status').hidden=true;
+if(previous&&previous!==el){previous.style.zIndex='1';setTimeout(()=>{if(previous!==current){previous.classList.remove('active');if(previous.tagName==='VIDEO'){previous.pause();previous.removeAttribute('src');previous.load()}}},500)}}
+function imageReady(img,url){return new Promise((resolve,reject)=>{img.onload=()=>resolve();img.onerror=()=>reject(Error('Image failed to load'));img.src=url;if(img.complete&&img.naturalWidth)resolve()})}
+function videoReady(v,url){return new Promise((resolve,reject)=>{v.onloadeddata=()=>resolve();v.onerror=()=>reject(Error('Video failed to load'));v.src=url;v.load();if(v.readyState>=2)resolve()})}
+async function next(){clearTimeout(timer);const t=++token;try{await refresh();if(t!==token)return;const items=(cloud.slides||[]).filter(s=>s.enabled!==false&&(s.url||s.image||s.video));if(!items.length){if(!current){$('status').hidden=false;$('status').textContent='Add media in KNK Signage Manager.'}timer=setTimeout(next,5000);return}
+const s=choose(items),url=s.url||s.image||s.video;const video=isVideo(s),el=standby(video?'video':'image');
+if(video){await videoReady(el,url);if(t!==token)return;el.muted=false;el.volume=Math.max(0,Math.min(1,Number(cloud.settings?.volume??80)/100));el.onended=()=>{if(t===token)next()};el.onerror=()=>{if(t===token)next()};try{await el.play();if(t!==token)return;$('start').hidden=true;show(el)}catch(e){if(t!==token)return;show(el);$('start').hidden=false;$('start').onclick=()=>{el.play().then(()=>{$('start').hidden=true}).catch(()=>{$('start').textContent='Tap to enable sound'})}}}
+else{await imageReady(el,url);if(t!==token)return;show(el);timer=setTimeout(()=>{if(t===token)next()},Math.max(3,Math.min(120,Number(cloud.settings?.seconds)||6))*1000)}
+}catch(e){if(t!==token)return;console.error('KNK playback:',e);if(!current){$('status').hidden=false;$('status').textContent='Unable to load signage: '+e.message}timer=setTimeout(next,3500)}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&current?.tagName==='VIDEO'&&current.paused){current.play().catch(()=>$('start').hidden=false)}});
 next();
 </script></body></html>
