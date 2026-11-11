@@ -20,7 +20,23 @@ const slots={image:[$('img0'),$('img1')],video:[$('vid0'),$('vid1')]};
 let current=null,bag=[],signature='',lastId=null,token=0,timer=null;
 let cloud={slides:[],settings:{seconds:6,volume:80}};
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function choose(items){const sig=items.map(x=>x.id).sort().join('|');if(sig!==signature){signature=sig;bag=[]}if(!bag.length){bag=shuffle(items.map(x=>x.id));if(bag.length>1&&bag[0]===lastId){let j=1+Math.floor(Math.random()*(bag.length-1));[bag[0],bag[j]]=[bag[j],bag[0]]}}const id=bag.shift();lastId=id;return items.find(x=>x.id===id)}
+function choose(items){
+ const byId=new Map(items.map(x=>[String(x.id),x]));
+ const sig=items.map(x=>String(x.id)+':'+(isVideo(x)?'v':'p')).sort().join('|');
+ if(sig!==signature){signature=sig;bag=[]}
+ if(!bag.length)bag=shuffle(items.map(x=>String(x.id)));
+ const last=byId.get(String(lastId));
+ // If the last item was a video, select a photo next whenever one is available.
+ if(last&&isVideo(last)){
+   let photoIndex=bag.findIndex(id=>{const x=byId.get(id);return x&&!isVideo(x)});
+   if(photoIndex<0){
+     const photos=items.filter(x=>!isVideo(x));
+     if(photos.length){const p=photos[Math.floor(Math.random()*photos.length)];lastId=String(p.id);return p}
+   }else if(photoIndex>0){[bag[0],bag[photoIndex]]=[bag[photoIndex],bag[0]]}
+ }
+ if(bag.length>1&&bag[0]===String(lastId)){const j=1+Math.floor(Math.random()*(bag.length-1));[bag[0],bag[j]]=[bag[j],bag[0]]}
+ const id=bag.shift();lastId=id;return byId.get(id)
+}
 function isVideo(s){return s.mediaType?.startsWith('video/')||s.type==='video'||/\.(mp4|webm)(\?|$)/i.test(s.url||'')}
 function standby(type){return slots[type].find(e=>e!==current)||slots[type][0]}
 async function refresh(){const r=await fetch('/api/playlist',{cache:'no-store',credentials:'same-origin'});if(!r.ok)throw Error('Playlist '+r.status);cloud=await r.json()}
