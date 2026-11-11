@@ -1,0 +1,39 @@
+{
+  "name": "knk-signage-player",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Krunch N' Krave offline-capable Windows signage player",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^36.9.5",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.vamtratech.knksignage",
+    "productName": "KNK Signage Player",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "player.html"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "KNK Signage Player"
+    }
+  }
+}
