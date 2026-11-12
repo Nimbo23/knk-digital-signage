@@ -6,6 +6,8 @@ const fsp=require('node:fs/promises');
 const path=require('node:path');
 const {Readable}=require('node:stream');
 const {pipeline}=require('node:stream/promises');
+// Prefer software rendering on mini PCs where Chromium GPU decoding corrupts signage frames.
+app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 const BASE='https://knksignage.vamtratech.com';
 let mainWindow,loginWindow,server,port,updating=false,loginRequested=false,cache,manifest={slides:[],settings:{seconds:6,volume:80}};
