@@ -8,7 +8,7 @@ const {Readable}=require('node:stream');
 const {pipeline}=require('node:stream/promises');
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 const BASE='https://knksignage.vamtratech.com';
-let mainWindow,loginWindow,server,port,updating=false,cache,manifest={slides:[],settings:{seconds:6,volume:80}};
+let mainWindow,loginWindow,server,port,updating=false,loginRequested=false,cache,manifest={slides:[],settings:{seconds:6,volume:80}};
 const types={'.mp4':'video/mp4','.webm':'video/webm','.mov':'video/quicktime','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.gif':'image/gif'};
 function contentType(t){return t.startsWith('video/')||t.startsWith('image/')?t:'application/octet-stream'}
 function mimeExt(t){return ({'video/mp4':'.mp4','video/webm':'.webm','video/quicktime':'.mov','image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','image/gif':'.gif'})[t]||'.bin'}
@@ -64,14 +64,18 @@ async function sync(){if(updating)return;updating=true;try{
  const tmp=path.join(cache,'playlist.tmp');await fsp.writeFile(tmp,JSON.stringify(next));await fsp.rename(tmp,path.join(cache,'playlist.json'));
  manifest=next;
  console.log('KNK signage cache updated:',safe.length,'items');
-}catch(e){console.warn('KNK signage sync:',e.message);if(!manifest.slides.length)openLogin()}
+ if(loginWindow&&!loginWindow.isDestroyed()){loginWindow.close()}
+ if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('knk-playlist-updated');
+}catch(e){console.warn('KNK signage sync:',e.message);if(!manifest.slides.length&&!loginRequested)openLogin()}
 finally{updating=false}}
 function openLogin(){if(loginWindow&&!loginWindow.isDestroyed()){loginWindow.focus();return}
- loginWindow=new BrowserWindow({width:1050,height:800,title:'KNK Signage — Cloudflare Login',webPreferences:{partition:'persist:knk-login',sandbox:true}});
- // Login and background synchronization must use the same persistent session.
- loginWindow.webContents.session.cookies.on('changed',()=>{setTimeout(()=>sync(),1200)});
- loginWindow.loadURL(BASE+'/dashboard');
- loginWindow.on('closed',()=>{loginWindow=null;sync()});
+ loginRequested=true;
+ loginWindow=new BrowserWindow({width:900,height:720,title:'KNK Signage — Sign in to synchronize',autoHideMenuBar:true,webPreferences:{partition:'persist:knk-login',sandbox:true,contextIsolation:true,nodeIntegration:false}});
+ loginWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+ // Cloudflare Access authentication only. Never show the upload/dashboard interface in the player.
+ loginWindow.loadURL(BASE+'/player');
+ loginWindow.webContents.on('did-finish-load',()=>{sync()});
+ loginWindow.on('closed',()=>{loginWindow=null;loginRequested=false});
 }
 async function createWindow(){mainWindow=new BrowserWindow({width:720,height:1080,backgroundColor:'#000000',autoHideMenuBar:true,fullscreen:true,title:'KNK Signage Player',webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
  mainWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
