@@ -16,8 +16,9 @@ async function loadCache(){cache=path.join(app.getPath('userData'),'offline-medi
 function send(res,code,data,type='application/json'){res.writeHead(code,{'Content-Type':type,'Cache-Control':'no-store'});res.end(data)}
 async function serve(req,res){try{
  const u=new URL(req.url,'http://127.0.0.1');
+ if(u.pathname==='/api/window/minimize'){if(req.method!=='POST')return send(res,405,'Method not allowed','text/plain');if(mainWindow&&!mainWindow.isDestroyed())mainWindow.minimize();return send(res,200,JSON.stringify({ok:true}))}
  if(u.pathname==='/api/playlist')return send(res,200,JSON.stringify(manifest));
- if(u.pathname==='/player'||u.pathname==='/')return send(res,200,await fsp.readFile(path.join(__dirname,'player.html')),'text/html; charset=utf-8');
+ if(u.pathname==='/player'||u.pathname==='/'){const html=await fsp.readFile(path.join(__dirname,'player.html'),'utf8');const controls=`<style>#knk-win-minimize{position:fixed;z-index:2147483647;top:12px;right:12px;width:52px;height:52px;border:1px solid #ffffff80;border-radius:12px;background:#111b;color:white;font:700 28px Arial;cursor:pointer;opacity:.12;transition:opacity .2s}#knk-win-minimize:hover,#knk-win-minimize:focus,#knk-win-minimize:active{opacity:1}@media(pointer:coarse){#knk-win-minimize{opacity:.55}}</style><button id="knk-win-minimize" aria-label="Minimize Windows signage player" title="Minimize to desktop">&#8722;</button><script>document.getElementById('knk-win-minimize').addEventListener('click',async()=>{try{await fetch('/api/window/minimize',{method:'POST'})}catch(e){}})</script>`;return send(res,200,html.replace('</body>',controls+'</body>'),'text/html; charset=utf-8')}
  if(u.pathname.startsWith('/api/signage-file/')){
   const id=decodeURIComponent(u.pathname.slice('/api/signage-file/'.length));
   if(!/^[a-zA-Z0-9_-]+$/.test(id))return send(res,404,'Not found','text/plain');
