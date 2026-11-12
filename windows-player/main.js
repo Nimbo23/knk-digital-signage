@@ -65,15 +65,16 @@ async function sync(){if(updating)return;updating=true;try{
  manifest=next;
  console.log('KNK signage cache updated:',safe.length,'items');
  if(loginWindow&&!loginWindow.isDestroyed()){loginWindow.close()}
- if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('knk-playlist-updated');
-}catch(e){console.warn('KNK signage sync:',e.message);if(!manifest.slides.length&&!loginRequested)openLogin()}
+ if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.executeJavaScript('window.dispatchEvent(new Event("knk-playlist-updated"))').catch(()=>{});
+}catch(e){console.warn('KNK signage sync:',e.message);if(!manifest.slides.length&&!loginRequested&&/HTTP 401|HTTP 403|Cloud login required/.test(e.message))openLogin()}
 finally{updating=false}}
 function openLogin(){if(loginWindow&&!loginWindow.isDestroyed()){loginWindow.focus();return}
  loginRequested=true;
  loginWindow=new BrowserWindow({width:900,height:720,title:'KNK Signage — Sign in to synchronize',autoHideMenuBar:true,webPreferences:{partition:'persist:knk-login',sandbox:true,contextIsolation:true,nodeIntegration:false}});
  loginWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  // Cloudflare Access authentication only. Never show the upload/dashboard interface in the player.
- loginWindow.loadURL(BASE+'/player');
+ loginWindow.loadURL(BASE+'/cdn-cgi/access/login?redirect_url='+encodeURIComponent(BASE+'/player'));
+ loginWindow.webContents.on('did-navigate',(event,url)=>{if(url.startsWith(BASE+'/player'))sync()});
  loginWindow.webContents.on('did-finish-load',()=>{sync()});
  loginWindow.on('closed',()=>{loginWindow=null;loginRequested=false});
 }
