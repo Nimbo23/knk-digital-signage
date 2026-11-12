@@ -1,6 +1,6 @@
 {
   "name": "knk-signage-player",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "Krunch N' Krave offline-capable Windows signage player",
   "main": "main.js",
