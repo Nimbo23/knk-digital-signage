@@ -8,6 +8,8 @@ const {Readable}=require('node:stream');
 const {pipeline}=require('node:stream/promises');
 // Prefer software rendering on mini PCs where Chromium GPU decoding corrupts signage frames.
 app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-accelerated-2d-canvas');
+app.commandLine.appendSwitch('disable-gpu-rasterization');
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 const BASE='https://knksignage.vamtratech.com';
 let mainWindow,loginWindow,server,port,updating=false,loginRequested=false,cache,manifest={slides:[],settings:{seconds:6,volume:80}};
@@ -81,7 +83,7 @@ function openLogin(){if(loginWindow&&!loginWindow.isDestroyed()){loginWindow.foc
  loginWindow.webContents.on('did-finish-load',()=>{sync()});
  loginWindow.on('closed',()=>{loginWindow=null;loginRequested=false});
 }
-async function createWindow(){mainWindow=new BrowserWindow({width:720,height:1080,backgroundColor:'#000000',autoHideMenuBar:true,fullscreen:true,title:'KNK Signage Player',webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
+async function createWindow(){mainWindow=new BrowserWindow({width:720,height:1080,backgroundColor:'#000000',autoHideMenuBar:true,fullscreen:true,title:'Vamtratech Signage Player',webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
  mainWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  mainWindow.webContents.on('before-input-event',(event,input)=>{
   if(input.type!=='keyDown')return;
