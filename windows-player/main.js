@@ -83,7 +83,7 @@ function openLogin(){if(loginWindow&&!loginWindow.isDestroyed()){loginWindow.foc
  loginWindow.webContents.on('did-finish-load',()=>{sync()});
  loginWindow.on('closed',()=>{loginWindow=null;loginRequested=false});
 }
-async function createWindow(){mainWindow=new BrowserWindow({width:720,height:1080,backgroundColor:'#000000',autoHideMenuBar:true,fullscreen:true,title:'Vamtratech Signage Player',webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
+async function createWindow(){mainWindow=new BrowserWindow({width:720,height:1080,backgroundColor:'#000000',autoHideMenuBar:true,fullscreen:true,title:'Vamtratech Signage Player',icon:path.join(__dirname,'build','icon.ico'),webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
  mainWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  mainWindow.webContents.on('before-input-event',(event,input)=>{
   if(input.type!=='keyDown')return;
