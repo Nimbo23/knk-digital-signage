@@ -1,6 +1,6 @@
 {
   "name": "knk-signage-player",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "private": true,
   "description": "Vamtratech offline-capable Windows digital signage player",
   "main": "main.js",
@@ -26,7 +26,8 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
