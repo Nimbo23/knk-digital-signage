@@ -21,7 +21,8 @@
     "files": [
       "main.js",
       "package.json",
-      "player.html"
+      "player.html",
+      "build/icon.ico"
     ],
     "win": {
       "target": [
