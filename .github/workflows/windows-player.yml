@@ -20,6 +20,19 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Prepare Windows icon at required resolution
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $source = [System.Drawing.Icon]::ExtractAssociatedIcon((Resolve-Path 'build/icon.ico').Path)
+          $bitmap = New-Object System.Drawing.Bitmap(256,256)
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+          $graphics.DrawImage($source.ToBitmap(),0,0,256,256)
+          $graphics.Dispose()
+          $bitmap.Save((Join-Path (Get-Location) 'build/icon-256.png'),[System.Drawing.Imaging.ImageFormat]::Png)
+          $bitmap.Dispose()
+          $source.Dispose()
       - name: Build Windows setup
         run: npm run dist
         env:
